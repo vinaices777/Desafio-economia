@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#176b4d">
+<title>Meu Desafio de Economia</title>
+<style>
+:root{--g:#176b4d;--bg:#f5f7f6;--line:#dce5df}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#1e2924;font-family:Arial,sans-serif}
+header{background:linear-gradient(135deg,#14583f,#21865f);color:white;padding:25px 16px}
+main{max-width:950px;margin:18px auto;padding:0 12px}
+h1{margin:0 0 8px;font-size:26px}
+header p{margin:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat,.progress{background:white;border:1px solid var(--line);border-radius:12px;padding:13px}
+.stat span{display:block;color:#64736b;font-size:13px}
+.stat strong{display:block;color:var(--g);font-size:19px;margin-top:7px}
+.progress{margin-top:12px}
+.bar{height:10px;background:#e8eee9;border-radius:20px;margin:10px 0;overflow:hidden}
+#fill{height:100%;width:0;background:var(--g)}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+input,button{font:inherit;padding:11px;border:1px solid #ccd8cf;border-radius:9px}
+input{flex:1;min-width:130px}
+button{cursor:pointer;font-weight:bold}
+.green{background:var(--g);color:white}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.cell{background:white;min-height:59px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:4px}
+.cell small{font-size:11px;color:#64736b}
+.cell.done{background:#e1f4e9;border-color:#7bc79d;color:#115438}
+.cell.done small{color:#176b4d}
+.note{font-size:13px;color:#64736b;line-height:1.5}
+@media(min-width:600px){.grid{grid-template-columns:repeat(10,1fr)}}
+@media(max-width:370px){.stats{grid-template-columns:1fr}.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header>
+<h1>💰 Meu Desafio de Economia</h1>
+<p>Marque os valores que você já guardou!</p>
+</header>
+<main>
+<div class="stats">
+<div class="stat"><span>Total guardado</span><strong id="total">R$ 0,00</strong></div>
+<div class="stat"><span>Números marcados</span><strong id="count">0 de 500</strong></div>
+<div class="stat"><span>Falta guardar</span><strong id="left">R$ 125.250,00</strong></div>
+</div>
+<div class="progress">
+<strong id="pct">Progresso: 0%</strong>
+<div class="bar"><div id="fill"></div></div>
+<div id="status" class="note">Escolha um número para começar!</div>
+</div>
+<div class="controls">
+<input id="search" type="search" inputmode="numeric" placeholder="Buscar número, ex.: 32">
+<button id="all">Mostrar todos</button>
+<button id="backup">Exportar backup</button>
+</div>
+<p class="note">Toque em um número para marcar ou desmarcar. Cada número marcado soma aquele valor em reais. Nesta versão, os dados ficam salvos neste navegador e aparelho.</p>
+<div id="grid" class="grid"></div>
+<p class="note">Meta completa: R$ 125.250,00. Guarde no seu ritmo!</p>
+</main>
+<script>
+const KEY='desafio-economia-v1';
+const GOAL=125250;
+let marked=new Set();
+try{
+ const data=JSON.parse(localStorage.getItem(KEY)||'[]');
+ marked=new Set(data.filter(n=>Number.isInteger(n)&&n>=1&&n<=500));
+}catch(e){}
+const money=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify([...marked]));}
+ catch(e){alert('Não foi possível salvar. Exporte um backup.');}
+}
+function update(){
+ const sum=[...marked].reduce((a,b)=>a+b,0);
+ const count=marked.size;
+ const pct=sum/GOAL*100;
+ document.getElementById('total').textContent=money(sum);
+ document.getElementById('count').textContent=count+' de 500';
+ document.getElementById('left').textContent=money(GOAL-sum);
+ document.getElementById('pct').textContent='Progresso: '+pct.toLocaleString('pt-BR',{maximumFractionDigits:2})+'%';
+ document.getElementById('fill').style.width=pct+'%';
+ document.getElementById('status').textContent=count+' valores marcados • '+(500-count)+' disponíveis';
+}
+function render(){
+ const q=document.getElementById('search').value.trim();
+ const grid=document.getElementById('grid');
+ grid.innerHTML='';
+ for(let n=1;n<=500;n++){
+  if(q&&!String(n).includes(q))continue;
+  const b=document.createElement('button');
+  b.className='cell'+(marked.has(n)?' done':'');
+  b.innerHTML='<strong>'+n+(marked.has(n)?' ✓':'')+'</strong><small>'+money(n)+'</small>';
+  b.onclick=()=>{
+   if(marked.has(n))marked.delete(n);else marked.add(n);
+   save();render();update();
+  };
+  grid.appendChild(b);
+ }
+}
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('all').onclick=()=>{
+ document.getElementById('search').value='';render();
+};
+document.getElementById('backup').onclick=()=>{
+ const blob=new Blob([JSON.stringify([...marked].sort((a,b)=>a-b),null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;a.download='backup-desafio-economia.json';a.click();
+ URL.revokeObjectURL(url);
+};
+render();update();
+</script>
+</body>
+</html>
